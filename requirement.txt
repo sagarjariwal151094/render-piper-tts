@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+soundfile
+piper-onnx
