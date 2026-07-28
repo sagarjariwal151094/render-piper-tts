@@ -1,20 +1,25 @@
 import os
 import urllib.request
 
-# Low-memory, high-quality English voice files
-MODEL_URL = "https://github.com"
-CONFIG_URL = "https://github.com.json"
+# High-speed alternative mirrors hosted on Hugging Face
+MODEL_URL = "https://huggingface.co"
+CONFIG_URL = "https://huggingface.co.json"
 
 def download_file(url, filename):
     if not os.path.exists(filename):
         print(f"Downloading {filename}...")
         opener = urllib.request.build_opener()
-        opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+        opener.addheaders = [('User-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')]
         urllib.request.install_opener(opener)
-        urllib.request.urlretrieve(url, filename)
-        print(f"Finished downloading {filename}")
+        
+        try:
+            urllib.request.urlretrieve(url, filename)
+            print(f"Successfully cached {filename}")
+        except Exception as e:
+            print(f"Download failed for {filename}: {e}")
+            raise e
 
 if __name__ == "__main__":
     download_file(MODEL_URL, "model.onnx")
     download_file(CONFIG_URL, "model.onnx.json")
-    print("Piper TTS assets successfully cached!")
+    print("All backend Piper engine dependencies loaded!")
