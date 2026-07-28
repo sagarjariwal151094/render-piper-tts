@@ -18,7 +18,7 @@ class TTSRequest(BaseModel):
 
 @app.get("/")
 def health_check():
-    return {"status": "healthy", "message": "Piper Engine Online"}
+    return {"status": "healthy", "message": "Piper Engine Fix Active"}
 
 @app.post("/v1/predict")
 async def generate_speech(request: TTSRequest):
@@ -27,28 +27,27 @@ async def generate_speech(request: TTSRequest):
         if not request.text.strip():
             raise HTTPException(status_code=400, detail="Text cannot be empty")
         
-        # Initialize Piper only on the first request to protect system memory
+        # Initialize Piper only on the first request to save RAM
         if piper_engine is None:
-            if not os.path.exists(MODEL_PATH):
-                raise HTTPException(status_code=500, detail="Piper model files are missing.")
+            if not os.path.exists(MODEL_PATH) or not os.path.exists(CONFIG_PATH):
+                raise HTTPException(status_code=500, detail="Piper model or configuration files are missing.")
             piper_engine = Piper(MODEL_PATH, CONFIG_PATH)
             
-        # Synthesize audio bytes directly from text input
-        # Note: Piper natively handles paragraph splitting safely under the hood
-        audio_frames = piper_engine.synthesize(request.text)
+        # Synthesize audio (Piper returns raw PCM 16-bit audio)
+        audio_bytes = piper_engine.synthesize(request.text)
         
-        # Convert raw binary frames directly into a standard numpy float array
-        audio_array = np.frombuffer(audio_frames, dtype=np.int16)
+        # FIX: Explicitly convert the output into a numpy array 
+        audio_array = np.frombuffer(audio_bytes, dtype=np.int16)
         
         output_filename = "piper_output.wav"
         if os.path.exists(output_filename):
             os.remove(output_filename)
             
-        # Piper medium models output at a consistent 22050Hz sample rate
+        # Write out raw PCM frames to a standard playable WAV file
         sf.write(output_filename, audio_array, 22050)
         
-        # Clear out remaining workspace memory traces immediately
-        del audio_frames
+        # Free up unused memory instantly
+        del audio_bytes
         del audio_array
         gc.collect()
         
@@ -56,4 +55,4 @@ async def generate_speech(request: TTSRequest):
         
     except Exception as e:
         gc.collect()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"TTS Error: {str(e)}")
