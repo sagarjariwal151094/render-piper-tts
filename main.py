@@ -33,17 +33,17 @@ async def generate_speech(request: TTSRequest):
                 raise HTTPException(status_code=500, detail="Piper model or configuration files are missing.")
             piper_engine = Piper(MODEL_PATH, CONFIG_PATH)
             
-        # Synthesize audio (Piper returns raw PCM 16-bit audio)
-        audio_bytes = piper_engine.synthesize(request.text)
+        # CORRECT METHOD: piper-onnx uses .create() to synthesize audio frames
+        audio_bytes = piper_engine.create(request.text)
         
-        # FIX: Explicitly convert the output into a numpy array 
+        # Explicitly convert the output into a numpy array 
         audio_array = np.frombuffer(audio_bytes, dtype=np.int16)
         
         output_filename = "piper_output.wav"
         if os.path.exists(output_filename):
             os.remove(output_filename)
             
-        # Write out raw PCM frames to a standard playable WAV file
+        # Write down raw PCM frames to a standard playable WAV file
         sf.write(output_filename, audio_array, 22050)
         
         # Free up unused memory instantly
